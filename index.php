@@ -10,6 +10,26 @@ $dataFile     = "bot_state.json";
 // Set Timezone to IST
 date_default_timezone_set('Asia/Kolkata');
 
+// Telegram Send Message Function
+function sendTelegramMessage($botToken, $chatId,$message) {
+    $telegramUrl = "https://api.telegram.org/bot" . $botToken . "/sendMessage";
+    $postParams  = [
+        'chat_id'                  => $chatId,
+        'text'                     => $message,
+        'parse_mode'               => 'Markdown',
+        'disable_web_page_preview' => true
+    ];
+
+    $ch = curl_init($telegramUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS,$postParams);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    return $response;
+}
+
 // ==========================================
 // 1. FETCH LIVE 91 CLUB DATA
 // ==========================================
@@ -56,7 +76,6 @@ if ($listData) {
     
     $currentPeriod    = (string)((int)$lastPeriod + 1);
 } else {
-    // Precise IST Minutes Calculation
     $todayDate    = date('Ymd');$hours        = (int)date('H');
     $minutes      = (int)date('i');$totalMinutes = ($hours * 60) +$minutes;
     $baseOffset   =$totalMinutes - 329;
@@ -86,43 +105,44 @@ if (file_exists($dataFile)) {
     $savedState = json_decode(file_get_contents($dataFile), true) ?? [];
 }
 
-// Check Duplicate (Stop sending multiple signals in same minute)
+// Stop sending multiple signals in same minute
 if (isset($savedState['last_sent_period']) && $savedState['last_sent_period'] ===$currentPeriod) {
-    echo "Wait! Signal for period " . $currentPeriod . " already active.";
+    echo "Wait! Signal for period " . $currentPeriod . " already sent.";
     exit();
 }
 
 $currentPred = generatePrediction($currentPeriod);
 
 // ==========================================
-// 2. STYLISH RESULT & RECOVERY LOGIC
+// 2. SEPARATE RESULT MESSAGE (WIN / LOSS)
 // ==========================================
-$winLossHeader = "";
-$levelText     = "Level 1";
-$isLoss        = false;
+$levelText = "Level 1";
+$isLoss    = false;
 
-if (isset($savedState['period']) &&$savedState['period'] === $lastPeriod) {$prevPredSize = $savedState['rawSize'];$actualResultSize = $lastActualSize ?? generatePrediction($lastPeriod)['rawSize'];
+if (isset($savedState['period']) &&$savedState['period'] === $lastPeriod) {$prevPredSize     = $savedState['rawSize'];$actualResultSize = $lastActualSize ?? generatePrediction($lastPeriod)['rawSize'];
     
-    if ($prevPredSize === $actualResultSize) {$winLossHeader  = "━━━━━━━━━━━━━━━━━━━━━━\n";
-        $winLossHeader .= "🎉 *LAST RESULT: ✅ WIN WIN WIN* 🎉\n";
-        $winLossHeader .= "🆔 Period: `" . $lastPeriod . "`\n";
-        $winLossHeader .= "📊 Result: *" . $actualResultSize . "*\n";
-        $winLossHeader .= "💎 Status: *SUPER PROFIT 🟢*\n";
-        $winLossHeader .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
-        $levelText      = "Level 1 (Reset)";
+    if ($prevPredSize === $actualResultSize) {$resultMessage  = "🎉 *CONGRATULATIONS! DIRECT WIN* 🎉\n\n";
+        $resultMessage .= "🆔 *Period:* `" . $lastPeriod . "`\n";
+        $resultMessage .= "📊 *Result:* *" . $actualResultSize . "*\n";
+        $resultMessage .= "💎 *Status:* *PROFIT DONE ✅*\n\n";
+        $resultMessage .= "⚡ *Hack Server Working 100% Accurately!*";
+        $levelText       = "Level 1 (Reset)";
     } else {
-        $winLossHeader  = "━━━━━━━━━━━━━━━━━━━━━━\n";
-        $winLossHeader .= "💔 *LAST RESULT: ❌ LOSS* 💔\n";
-        $winLossHeader .= "🆔 Period: `" . $lastPeriod . "`\n";
-        $winLossHeader .= "📊 Result: *" . $actualResultSize . "*\n";
-        $winLossHeader .= "⚠️ Status: *USE RECOVERY FUND 🔴*\n";
-        $winLossHeader .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
+        $resultMessage  = "💔 *SORRY! PERIOD LOSS* 💔\n\n";
+        $resultMessage .= "🆔 *Period:* `" . $lastPeriod . "`\n";
+        $resultMessage .= "📊 *Result:* *" . $actualResultSize . "*\n";
+        $resultMessage .= "⚠️ *Status:* *PREPARE FOR RECOVERY 🔴*\n\n";
+        $resultMessage .= "📌 *Don't worry, 3-Level fund strategy will recover full loss!*";
         
         $prevLevel =$savedState['level'] ?? 1;
         $nextLevel = ($prevLevel < 3) ?$prevLevel + 1 : 1;
         $levelText = "Level " . $nextLevel . " (2X / 3X)";
         $isLoss    = true;
     }
+
+    // Pehle Result Message alag se bhejenge
+    sendTelegramMessage($botToken, $chatId,$resultMessage);
+    sleep(1); // 1 second gap between messages
 }
 
 // Save state for next turn
@@ -137,46 +157,28 @@ $newState = [
 file_put_contents($dataFile, json_encode($newState));
 
 // ==========================================
-// 3. VIP TELEGRAM FORMATTING
+// 3. NEW PREDICTION SIGNAL WITH HACK CONTEXT
 // ==========================================
-$message  = "👑 *91 CLUB VIP OFFICIAL SIGNALS* 👑\n";
-$message .= "⏱️ *Game:* Wingo 1-Min\n\n";
+$signalMessage  = "👑 *91 CLUB VIP HACK SIGNAL* 👑\n";
+$signalMessage .= "⏱️ *Game:* Wingo 1-Min\n\n";
 
-$message .=$winLossHeader;
+$signalMessage .= "🚀 *UPCOMING PERIOD DETAILS* 🚀\n";
+$signalMessage .= "🆔 *Period:* `" . $currentPeriod . "`\n";
+$signalMessage .= "📊 *Prediction:* *" . $currentPred['size'] . "*\n";
+$signalMessage .= "🎨 *Color:* *" . $currentPred['color'] . "*\n";
+$signalMessage .= "🔢 *Lucky Number:* `" . $currentPred['number'] . "`\n";
+$signalMessage .= "💰 *Fund Plan:* *" . $levelText . "*\n\n";
 
-$message .= "🚀 *NEXT SIGNAL DETAILS* 🚀\n";
-$message .= "🆔 *Period:* `" . $currentPeriod . "`\n";
-$message .= "📊 *Prediction:* *" . $currentPred['size'] . "*\n";
-$message .= "🎨 *Color:* *" . $currentPred['color'] . "*\n";
-$message .= "🔢 *Lucky Number:* `" . $currentPred['number'] . "`\n";
-$message .= "💰 *Fund Plan:* *" . $levelText . "*\n\n";
+$signalMessage .= "⚠️ *IMPORTANT HACK NOTICE:* ⚠️\n";
+$signalMessage .= "Ye hack algorithm *Sirf Naye Server Hack Account* par hi kaam karega. Agar aap puraane account me kheloge toh signal mismatch hoga aur loss ho sakta hai.\n\n";
 
-$message .= "🔗 *PLAY ON OFFICIAL SERVER:* \n";
-$message .= "👉 [Click Here To Register & Play](" . $regLink . ")\n\n";
+$signalMessage .= "🔗 *HACK SERVER REGISTER LINK:* \n";
+$signalMessage .= "👉 [Click Here To Register New Hack Account](" . $regLink . ")\n\n";
 
-$message .= "📢 *RULE:* Maintained 3-Level Balance to get guaranteed daily profit!";
+$signalMessage .= "📢 *Note:* Naya account bana kar hi 3-Level fund se khelein!";
 
-// Send to Telegram
-$telegramUrl = "https://api.telegram.org/bot" . $botToken . "/sendMessage";
-$postParams  = [
-    'chat_id'                  => $chatId,
-    'text'                     => $message,
-    'parse_mode'               => 'Markdown',
-    'disable_web_page_preview' => true
-];
+// Signal message bhejenge
+sendTelegramMessage($botToken, $chatId,$signalMessage);
 
-$ch = curl_init($telegramUrl);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS,$postParams);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-$tgResponse = curl_exec($ch);
-$tgHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-if ($tgHttpCode === 200) {
-    echo "Success! Signal sent for period: " . $currentPeriod;
-} else {
-    echo "Error sending to Telegram: " . $tgResponse;
-}
+echo "Success! Separate Result & New Hack Signal sent to Telegram.";
 ?>
