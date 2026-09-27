@@ -28,13 +28,13 @@ function sendTelegramMessage($botToken, $chatId,$message) {
     return $response;
 }
 
-// Prediction Generator Algorithm
+// Ultra-Unique Prediction Matrix
 function generatePrediction($p) {
     $last3   = (int)substr($p, -3);
     $num     = ($last3 * 7 + 3) % 10;
-    $size    = ($num >= 5) ? "BIG 📈" : "SMALL 📉";
+    $size    = ($num >= 5) ? "BIG 📈 [HIGH VECTOR]" : "SMALL 📉 [LOW VECTOR]";
     $rawSize = ($num >= 5) ? "BIG" : "SMALL";
-    $color   = ($num == 0 || $num == 5) ? "VIOLET 🟣" : (($num % 2 === 0) ? "RED 🔴" : "GREEN 🟢");
+    $color   = ($num == 0 || $num == 5) ? "VIOLET 🟣" : (($num % 2 === 0) ? "RED 🔴 [ALPHA]" : "GREEN 🟢 [BETA]");
     
     return [
         'number'  => $num,
@@ -45,30 +45,37 @@ function generatePrediction($p) {
 }
 
 // ==========================================
-// 1. FETCH LIVE PERIOD & RESULT FROM API
+// 1. FETCH LIVE DATA FROM 91 CLUB API
 // ==========================================
-function get91ClubData() {
-    $urls = [
+function getReal91ClubHistory() {
+    $endpoints = [
         "https://api.91club.com/api/webapi/GetNoHeaderWingoList",
-        "https://draw.armaniprediction.com/api/wingo1m"
+        "https://91clubapi.com/api/webapi/GetNoHeaderWingoList",
+        "https://api.91clubadmin.com/api/webapi/GetNoHeaderWingoList"
     ];
 
     $postData = json_encode([
-        "typeId" => 1,
-        "pageNo" => 1,
+        "typeId"   => 1,
+        "pageNo"   => 1,
         "pageSize" => 10,
         "language" => 0
     ]);
 
-    foreach ($urls as$url) {
+    $userAgents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1"
+    ];
+
+    foreach ($endpoints as$url) {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS,$postData);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             "Content-Type: application/json;charset=UTF-8",
-            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            "User-Agent: " . $userAgents[array_rand($userAgents)],
+            "Referer: https://kanpur91.com/"
         ]);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         
@@ -78,34 +85,30 @@ function get91ClubData() {
 
         if ($httpCode === 200 &&$response) {
             $resData = json_decode($response, true);
-            if (isset($resData['data']['list'][0])) {
-                return $resData['data']['list'][0];
+            if (isset($resData['data']['list']) && count($resData['data']['list']) > 0) {
+                return $resData['data']['list'];
             }
         }
     }
     return null;
 }
 
-$apiItem = get91ClubData();
+$historyList = getReal91ClubHistory();
 
-if ($apiItem && isset($apiItem['issueNumber'])) {
-    $lastPeriod     = (string)$apiItem['issueNumber'];
-    $lastActualNum  = (int)$apiItem['number'];
-    $lastActualSize = ($lastActualNum >= 5) ? "BIG" : "SMALL";
-    $currentPeriod  = (string)((int)$lastPeriod + 1);
+if ($historyList && isset($historyList[0])) {
+    $lastFinishedItem =$historyList[0];
+    $lastPeriod       = (string)$lastFinishedItem['issueNumber'];
+    $lastActualNum    = (int)$lastFinishedItem['number'];
+    $lastActualSize   = ($lastActualNum >= 5) ? "BIG" : "SMALL";
+    
+    $currentPeriod    = (string)((int)$lastPeriod + 1);
 } else {
-    // Exact IST Base Fallback
     $todayDate      = date('Ymd');$hours          = (int)date('H');
     $minutes        = (int)date('i');$totalMinutes   = ($hours * 60) +$minutes;
     $baseOffset     =$totalMinutes - 329;
     
-    $currentPeriod  = $todayDate . "10001" . sprintf("\%04d", $baseOffset);
-    $lastPeriod     = (string)((int)$currentPeriod - 1);
-    
-    // Algorithmic Fallback Result
-    $fallbackResult = generatePrediction($lastPeriod);
-    $lastActualNum  =$fallbackResult['number'];
-    $lastActualSize =$fallbackResult['rawSize'];
+    $currentPeriod  =$todayDate . "10001" . sprintf("%04d", $baseOffset);$lastPeriod     = (string)((int)$currentPeriod - 1);$lastActualNum  = null;
+    $lastActualSize = null;
 }
 
 $savedState = [];
@@ -113,60 +116,71 @@ if (file_exists($dataFile)) {
     $savedState = json_decode(file_get_contents($dataFile), true) ?? [];
 }
 
-// Duplicate Signal Stop
+// Prevent Duplicate Signals
 if (isset($savedState['last_sent_period']) && $savedState['last_sent_period'] ===$currentPeriod) {
-    echo "Wait! Period " . $currentPeriod . " already processed.";
+    echo "CYBER BOT: Period " . $currentPeriod . " already broadcasted.";
     exit();
 }
 
-$currentPred = generatePrediction($currentPeriod);
-
-// ==========================================
-// 2. GUARANTEED RESULT BANNER (WIN / LOSS / JACKPOT)
-// ==========================================
+$currentPred  = generatePrediction($currentPeriod);
 $currentLevel =$savedState['level'] ?? 1;
 
-if (isset($savedState['period'])) {
-    $prevPeriod     =$savedState['period'];
+// ==========================================
+// 2. ROBOTIC WIN / LOSS / JACKPOT BANNER
+// ==========================================
+if (isset($savedState['period']) && $savedState['period'] ===$lastPeriod) {
     $prevPredSize   =$savedState['rawSize'];
     $prevPredNumber =$savedState['number'];
     
-    // Match against target last period
-    $isSizeWin   = ($prevPredSize === $lastActualSize);$isNumberWin = ($prevPredNumber ===$lastActualNum);
-    
-    if ($isSizeWin &&$isNumberWin) {
-        // 💥 JACKPOT WIN
-        $resultMsg  = "💥 🎯 *JACKPOT WIN! (NUMBER MATCH)* 🎯 💥\n\n";
-        $resultMsg .= "🆔 *Period:* `" . $prevPeriod . "`\n";
-        $resultMsg .= "🔢 *Winning Number:* `" . $lastActualNum . "`\n";
-        $resultMsg .= "📊 *Winning Size:* *" . $lastActualSize . "*\n";
-        $resultMsg .= "💎 *Status:* *EXACT NUMBER + SIZE JACKPOT HIT ✅*\n\n";
-        $resultMsg .= "🚀 *Hack Server Performance: 100% PERFECT!*";
-        $currentLevel = 1;     } else if ($isSizeWin) {
-        // 🎉 DIRECT WIN
-        $resultMsg  = "🎉 *CONGRATULATIONS! DIRECT WIN* 🎉\n\n";
-        $resultMsg .= "🆔 *Period:* `" . $prevPeriod . "`\n";
-        $resultMsg .= "📊 *Result:* *" . $lastActualSize . "* (Number: `" . $lastActualNum . "`)\n";
-        $resultMsg .= "💎 *Status:* *PROFIT DONE ✅*\n\n";
-        $resultMsg .= "⚡ *Hack Server Profit System Activated!*";
-        $currentLevel = 1;
-    } else {
-        // 💔 PERIOD LOSS
-        $nextLvl    = ($currentLevel < 5) ?$currentLevel + 1 : 1;
-        $resultMsg  = "💔 *SORRY! PERIOD LOSS* 💔\n\n";
-        $resultMsg .= "🆔 *Period:* `" . $prevPeriod . "`\n";
-        $resultMsg .= "📊 *Actual Result:* *" . $lastActualSize . "* (Number: `" . $lastActualNum . "`)\n";
-        $resultMsg .= "⚠️ *Status:* *USE RECOVERY LEVEL " . $nextLvl . " 🔴*\n\n";
-        $resultMsg .= "📌 *Don't worry! Maintain 5-Level fund management to recover loss instantly.*";
+    if ($lastActualSize !== null &&$lastActualNum !== null) {
+        $isSizeWin   = ($prevPredSize === $lastActualSize);$isNumberWin = ($prevPredNumber ===$lastActualNum);
         
-        $currentLevel =$nextLvl;
-    }
+        if ($isSizeWin &&$isNumberWin) {
+            // 💥 ROBOTIC JACKPOT
+            $resultMsg  = "🤖 *[QUANTUM AI VERIFIER]*\n";
+            $resultMsg .= "===========================\n";
+            $resultMsg .= "💥 🎯 *CRITICAL JACKPOT OVERRIDE!* 🎯 💥\n";
+            $resultMsg .= "===========================\n";
+            $resultMsg .= "🆔 *PERIOD:* `" . $lastPeriod . "`\n";
+            $resultMsg .= "🔢 *SERVER NUMBER:* `" . $lastActualNum . "`\n";
+            $resultMsg .= "📊 *SERVER VECTOR:* *" . $lastActualSize . "*\n";
+            $resultMsg .= "⚡ *ACCURACY:* *100% PERFECT MATRIX MATCH ✅*\n";
+            $resultMsg .= "===========================\n";
+            $resultMsg .= "⚙️ *SYSTEM STATUS:* Profit Extracted. Resetting to Level 1.";
+            $currentLevel = 1;         } else if ($isSizeWin) {
+            // 🎉 ROBOTIC DIRECT WIN
+            $resultMsg  = "🤖 *[QUANTUM AI VERIFIER]*\n";
+            $resultMsg .= "===========================\n";
+            $resultMsg .= "🎉 *SYSTEM RESULT: DIRECT WIN CONFIRMED* 🎉\n";
+            $resultMsg .= "===========================\n";
+            $resultMsg .= "🆔 *PERIOD:* `" . $lastPeriod . "`\n";
+            $resultMsg .= "📊 *ACTUAL OUTCOME:* *" . $lastActualSize . "* (Digit: `" . $lastActualNum . "`)\n";
+            $resultMsg .= "💎 *PROFIT STATUS:* *SUCCESSFUL EXTRACTION ✅*\n";
+            $resultMsg .= "===========================\n";
+            $resultMsg .= "⚡ *AI Core: Next target loading...*";
+            $currentLevel = 1;
+        } else {
+            // 💔 ROBOTIC LOSS & RECOVERY
+            $nextLvl    = ($currentLevel < 5) ?$currentLevel + 1 : 1;
+            $resultMsg  = "🤖 *[QUANTUM AI VERIFIER]*\n";
+            $resultMsg .= "===========================\n";
+            $resultMsg .= "💔 *SYSTEM RESULT: PERIOD MISMATCH* 💔\n";
+            $resultMsg .= "===========================\n";
+            $resultMsg .= "🆔 *PERIOD:* `" . $lastPeriod . "`\n";
+            $resultMsg .= "📊 *ACTUAL OUTCOME:* *" . $lastActualSize . "* (Digit: `" . $lastActualNum . "`)\n";
+            $resultMsg .= "⚠️ *PROTOCOL:* *EXECUTE RECOVERY LEVEL " . $nextLvl . " 🔴*\n";
+            $resultMsg .= "===========================\n";
+            $resultMsg .= "🤖 *ROBOT ADVICE:* Maintain strict 5-Level Multiplier to recover current loss!";
+            
+            $currentLevel =$nextLvl;
+        }
 
-    sendTelegramMessage($botToken, $chatId,$resultMsg);
-    sleep(1);
+        sendTelegramMessage($botToken, $chatId,$resultMsg);
+        sleep(1);
+    }
 }
 
-// Save state for next turn
+// Save Bot State
 $newState = [
     'last_sent_period' => $currentPeriod,
     'period'           => $currentPeriod,
@@ -178,27 +192,29 @@ $newState = [
 file_put_contents($dataFile, json_encode($newState));
 
 // ==========================================
-// 3. NEW HACK PREDICTION SIGNAL
+// 3. FUTURISTIC ROBOT SIGNAL
 // ==========================================
-$signalMessage  = "👑 *91 CLUB VIP HACK SIGNAL* 👑\n";
-$signalMessage .= "⏱️ *Game:* Wingo 1-Min\n\n";
+$signalMessage  = "⚡ *[91 CLUB QUANTUM HACK BOT]* ⚡\n";
+$signalMessage .= "🤖 *MODE:* Autonomous Cyber Signal Engine\n";
+$signalMessage .= "===========================\n\n";
 
-$signalMessage .= "🚀 *UPCOMING PERIOD DETAILS* 🚀\n";
-$signalMessage .= "🆔 *Period:* `" . $currentPeriod . "`\n";
-$signalMessage .= "📊 *Prediction:* *" . $currentPred['size'] . "*\n";
-$signalMessage .= "🎨 *Color:* *" . $currentPred['color'] . "*\n";
-$signalMessage .= "🔢 *Lucky Number:* `" . $currentPred['number'] . "`\n";
-$signalMessage .= "💰 *Fund Plan:* *Level " . $currentLevel . " (Maintain 5-Level)*\n\n";
+$signalMessage .= "🚀 *LIVE MATRIX SIGNAL* 🚀\n";
+$signalMessage .= "🆔 *PERIOD ID:* `" . $currentPeriod . "`\n";
+$signalMessage .= "📊 *AI PREDICTION:* *" . $currentPred['size'] . "*\n";
+$signalMessage .= "🎨 *COLOR CODE:* *" . $currentPred['color'] . "*\n";
+$signalMessage .= "🔢 *LUCKY DIGIT:* `" . $currentPred['number'] . "`\n";
+$signalMessage .= "💰 *FUND SYSTEM:* *Level " . $currentLevel . " (5-Level Mandatory)*\n\n";
 
-$signalMessage .= "⚠️ *IMPORTANT HACK NOTICE:* ⚠️\n";
-$signalMessage .= "Ye hack server *Sirf Naye Registered Hack Account* par hi work karta hai. Purane account se khelne par signal miss ho sakta hai.\n\n";
+$signalMessage .= "===========================\n";
+$signalMessage .= "⚠️ *SYSTEM COMPATIBILITY NOTICE:* ⚠️\n";
+$signalMessage .= "Robot Algorithm strictly matches *HACK SERVER REGISTERED ACCOUNTS*. Old accounts will cause signal mismatch & losses!\n\n";
 
-$signalMessage .= "🔗 *HACK SERVER REGISTER LINK:* \n";
+$signalMessage .= "🔗 *HACK SERVER LINK:* \n";
 $signalMessage .= "👉 [Click Here To Register New Hack Account](" . $regLink . ")\n\n";
 
-$signalMessage .= "📢 *Note:* Guaranteed daily profit ke liye 5-Level balance maintain karke khele!";
+$signalMessage .= "⚙️ *ROBOTIC RULE:* Always follow 5-Level Fund Plan for 100% daily profit automation!";
 
 sendTelegramMessage($botToken, $chatId,$signalMessage);
 
-echo "Success! Result and Prediction sent.";
+echo "Success! Unique Robot AI Signal and Verification executed.";
 ?>
