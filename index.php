@@ -152,5 +152,5 @@ $signalCaption .= "━━━━━━━━━━━━━━━━━━━━�
 
 sendTelegramPhoto($botToken,$chatId, $robotPhoto,$signalCaption);
 
-echo "Success! Robot photo, win/loss results, and Hindi notice broadcasted perfectly.";
+echo "Success! Robot photo, win/loss results, and Hindi notice broadcasted perfectly."
 ?>
