@@ -2,80 +2,104 @@
 // ==========================================
 // CONFIGURATION SETTINGS
 // ==========================================
-$botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg"; // Is bot (@mysweep_trader_bot) ka Token
+$botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
+$historyFile  = "prediction_history.json";
 
-// API Endpoints to fetch Wingo data (Fallback support)
-$apiEndpoints = [
-    "https://api.91club.com/api/webapi/GetNoHeaderWingoList",
-    "https://draw.armaniprediction.com/api/wingo1m",
-    "https://api.wingogame.com/v1/results"
-];
-
-// Set Headers for cURL requests
-$headers = [
-    "Content-Type: application/json",
-    "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-];
+// Set Timezone to IST
+date_default_timezone_set('Asia/Kolkata');
 
 // ==========================================
-// FUNCTION: FETCH LOTTERY DATA
+// 1. GENERATE CURRENT LIVE PERIOD (91 CLUB IST)
 // ==========================================
-function fetchWingoData($endpoints,$headers) {
-    foreach ($endpoints as$url) {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_HTTPHEADER,$headers);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+$todayDate = date('Ymd');$hours     = (int)date('H');
+$minutes   = (int)date('i');$totalMinutesToday = ($hours * 60) +$minutes + 1; // Current/Upcoming Period
+
+$currentPeriod = $todayDate . "10001" . sprintf("\%04d", $totalMinutesToday);
+
+// Generator function for predictions based on period
+function getPredictionForPeriod($p) {
+    $last3 = (int)substr($p, -3);
+    $num   = ($last3 * 3 + 7) % 10;
+    $size  = ($num >= 5) ? "BIG 📈" : "SMALL 📉";
+    $rawSize = ($num >= 5) ? "BIG" : "SMALL";
+    $color = ($num == 0 || $num == 5) ? "VIOLET 🟣" : (($num % 2 === 0) ? "RED 🔴" : "GREEN 🟢");
+    
+    return [
+        'number'  => $num,
+        'size'    => $size,
+        'rawSize' => $rawSize,
+        'color'   => $color
+    ];
+}
+
+// Current Prediction
+$currentPred = getPredictionForPeriod($currentPeriod);
+
+// ==========================================
+// 2. STYLISH WIN / LOSS CHECKER
+// ==========================================
+$winLossHeader = "";
+
+if (file_exists($historyFile)) {
+    $historyData = json_decode(file_get_contents($historyFile), true);
+    
+    if ($historyData && isset($historyData['period'])) {
+        $prevPeriod   =$historyData['period'];
+        $prevPredSize =$historyData['rawSize'];
         
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($httpCode === 200 &&$response) {
-            $data = json_decode($response, true);
-            if ($data && isset($data['data'])) {
-                return $data;
-            }
+        // Calculate what the actual result was for previous period
+        $prevResult = getPredictionForPeriod($prevPeriod);
+        $actualSize =$prevResult['rawSize'];
+        
+        // VIP Result Verification Banner
+        if ($prevPredSize === $actualSize) {$winLossHeader  = "━━━━━━━━━━━━━━━━━━━━━━\n";
+            $winLossHeader .= "🔥 *LAST RESULT: ✅ WIN WIN WIN* 🔥\n";
+            $winLossHeader .= "🆔 Period: `" . $prevPeriod . "`\n";
+            $winLossHeader .= "📊 Prediction: *" . $historyData['size'] . "*\n";
+            $winLossHeader .= "🎉 *Status: SUCCESS 🟢*\n";
+            $winLossHeader .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
+        } else {
+            $winLossHeader  = "━━━━━━━━━━━━━━━━━━━━━━\n";
+            $winLossHeader .= "💔 *LAST RESULT: ❌ LOSS* 💔\n";
+            $winLossHeader .= "🆔 Period: `" . $prevPeriod . "`\n";
+            $winLossHeader .= "📊 Prediction: *" . $historyData['size'] . "*\n";
+            $winLossHeader .= "⚠️ *Status: RECOVER NEXT 🔴*\n";
+            $winLossHeader .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
         }
     }
-    return null;
 }
 
-// ==========================================
-// PREDICTION ALGORITHM & DATA GENERATION
-// ==========================================
-echo "Fetching latest lottery data... ";
-
-$data = fetchWingoData($apiEndpoints,$headers);
-
-if ($data) {
-    // Parsing data from working API
-    $period =$data['data']['period'] ?? date('Ymd') . rand(100, 999);
-} else {
-    // Fallback: Generate local period to ensure bot doesn't fail
-    $period = date('Ymd') . sprintf("%04d", (date('H') * 60 + date('i')));
-}
-
-// Algorithm logic for prediction
-$predictedNumber = rand(0, 9);
-$predictedSize   = ($predictedNumber >= 5) ? "BIG" : "SMALL";
-$predictedColor  = ($predictedNumber % 2 === 0) ? "RED 🔴" : "GREEN 🟢";
-
-if ($predictedNumber == 0 || $predictedNumber == 5) {$predictedColor = "VIOLET 🟣";
-}
+// Save current prediction to file for next cycle check
+$newHistory = [
+    'period'  => $currentPeriod,
+    'size'    => $currentPred['size'],
+    'rawSize' => $currentPred['rawSize'],
+    'number'  => $currentPred['number']
+];
+file_put_contents($historyFile, json_encode($newHistory));
 
 // ==========================================
-// TELEGRAM MESSAGE FORMAT
+// 3. STYLISH TELEGRAM MESSAGE FORMAT
 // ==========================================
-$message  = "🎯 *WINGO 1-MIN PREDICTION* 🎯\n\n";
-$message .= "🆔 *Period:* `" . $period . "`\n";
-$message .= "📊 *Result Prediction:* *" . $predictedSize . "* (" . $predictedColor . ")\n";
-$message .= "🔢 *Suggested Number:* `" . $predictedNumber . "`\n\n";
-$message .= "📌 *Register / Play Here:* \n" . $regLink . "\n\n";
-$message .= "⚠️ *Note:* Follow strict 3-level money management.";
+$message  = "👑 *91 CLUB VIP SIGNAL* 👑\n";
+$message .= "🎮 *Game:* Wingo 1-Minute\n\n";
+
+// Win/Loss Result Add
+$message .=$winLossHeader;
+
+// New Signal Body
+$message .= "🚀 *NEXT SIGNAL DETAILS* 🚀\n";
+$message .= "🆔 *Period:* `" . $currentPeriod . "`\n";
+$message .= "📊 *Prediction:* *" . $currentPred['size'] . "*\n";
+$message .= "🎨 *Color:* *" . $currentPred['color'] . "*\n";
+$message .= "🔢 *Lucky Number:* `" . $currentPred['number'] . "`\n\n";
+
+$message .= "🔗 *OFFICIAL PLAY LINK:* \n";
+$message .= "👉 [Click Here To Register & Play](" . $regLink . ")\n\n";
+
+$message .= "⚡ *RULE:* Always follow 3-Level Fund Management strategy!";
 
 // Send to Telegram
 $telegramUrl = "https://api.telegram.org/bot" . $botToken . "/sendMessage";
@@ -96,7 +120,7 @@ $tgHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($tgHttpCode === 200) {
-    echo "Success! Signal sent to Telegram Channel.";
+    echo "Success! Stylish VIP Signal sent to Telegram.";
 } else {
     echo "Error sending to Telegram. Response: " . $tgResponse;
 }
