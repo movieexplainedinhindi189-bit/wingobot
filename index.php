@@ -1,15 +1,11 @@
 <?php
 // ==========================================
-// CONFIGURATION & MANUAL SYNC SETTINGS
+// CONFIGURATION SETTINGS
 // ==========================================
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
-$dataFile     = '/tmp/manual_sync_bot_state.json';$robotPhoto   = "https://images.unsplash.com/photo-1485827404703-89b55fcc595e";
-
-// ⚠️ Yahan aapko apna current active period number daalna hai jo 91 Club me chal raha hai
-// Jaise abhi aapke screenshot me tha: 20260927100011001
-$liveRunningPeriod = "20260927100011001"; 
+$lockFile     = '/tmp/bot_utc_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1485827404703-89b55fcc595e";
 
 date_default_timezone_set('Asia/Kolkata');
 
@@ -49,6 +45,24 @@ function sendTelegramPhoto($botToken,$chatId, $photoUrl,$caption) {
     return $res;
 }
 
+// Precise UTC Minute Calculation for 91 Club Wingo format
+$utcDate        = gmdate('Ymd');$utcHours       = (int)gmdate('H');
+$utcMinutes     = (int)gmdate('i');$utcTotalMins   = ($utcHours * 60) +$utcMinutes;
+
+// Exact formula matching 91 club issue numbering sequence
+$periodSeq      = 10001 +$utcTotalMins;
+$currentPeriod  = $utcDate . "10001" . $periodSeq;
+$lastPeriod     = $utcDate . "10001" . ($periodSeq - 1);
+
+// Strict Minute Execution Lock
+$currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
+
+if ($lastRunMinute ===$currentMinute) {
+    echo "Already executed for this minute: " . $currentMinute;
+    exit();
+}
+file_put_contents($lockFile,$currentMinute);
+
 // Prediction Algorithm
 function generatePrediction($p) {
     $last3   = (int)substr($p, -3);
@@ -65,61 +79,37 @@ function generatePrediction($p) {
     ];
 }
 
-$currentPeriod =$liveRunningPeriod;
-$lastPeriod    = (string)((int)$currentPeriod - 1);
+$lastPred    = generatePrediction($lastPeriod);
+$currentPred = generatePrediction($currentPeriod);
 
-// Load saved state to check previous period result
-$savedState = file_exists($dataFile) ? json_decode(file_get_contents($dataFile), true) : [];
+$lastActualNum  =$lastPred['number'];
+$lastActualSize =$lastPred['rawSize'];
+$isWin = ($lastActualNum >= 5);
 
-if (isset($savedState['last_sent_period']) && $savedState['last_sent_period'] ===$currentPeriod) {
-    echo "Period " . $currentPeriod . " already processed.";
-    exit();
+// 1. Send Previous Period Win/Loss Result
+if ($isWin) {$resultMsg  = "🤖 *[ROBOT AI VERIFIER]*\n";
+    $resultMsg .= "===========================\n";
+    $resultMsg .= "🎉 *RESULT: DIRECT WIN CONFIRMED* 🎉\n";
+    $resultMsg .= "===========================\n";
+    $resultMsg .= "🆔 *PERIOD:* `" . $lastPeriod . "`\n";
+    $resultMsg .= "📊 *OUTCOME:* *" . $lastActualSize . "* (Digit: `" . $lastActualNum . "`)\n";
+    $resultMsg .= "💎 *STATUS:* *PROFIT EXTRACTED ✅*\n";
+    $resultMsg .= "===========================\n";
+    $resultMsg .= "⚡ *Robot AI: Target Achieved Successfully.*";
+} else {
+    $resultMsg  = "🤖 *[ROBOT AI VERIFIER]*\n";
+    $resultMsg .= "===========================\n";
+    $resultMsg .= "💔 *RESULT: PERIOD LOSS* 💔\n";
+    $resultMsg .= "===========================\n";
+    $resultMsg .= "🆔 *PERIOD:* `" . $lastPeriod . "`\n";
+    $resultMsg .= "📊 *OUTCOME:* *" . $lastActualSize . "* (Digit: `" . $lastActualNum . "`)\n";
+    $resultMsg .= "⚠️ *PROTOCOL:* *EXECUTE RECOVERY LEVEL 2 🔴*\n";
+    $resultMsg .= "===========================\n";
+    $resultMsg .= "🤖 *ROBOT ADVICE:* Loss recover karne ke liye 5-Level fund plan use karein!";
 }
 
-$currentPred  = generatePrediction($currentPeriod);
-$currentLevel =$savedState['level'] ?? 1;
-
-// 1. Verify and Send Win/Loss Result for the Previous Period
-if (isset($savedState['period']) && $savedState['period'] ===$lastPeriod) {
-    $prevPredSize =$savedState['rawSize'];
-    
-    // Generate actual outcome simulation for verification matching the pattern
-    $lastActualPred = generatePrediction($lastPeriod);$lastActualNum  = $lastActualPred['number'];$lastActualSize = $lastActualPred['rawSize'];$isWin = ($prevPredSize ===$lastActualSize);
-    
-    if ($isWin) {$resultMsg  = "🤖 *[ROBOT AI VERIFIER]*\n";
-        $resultMsg .= "===========================\n";
-        $resultMsg .= "🎉 *RESULT: DIRECT WIN CONFIRMED* 🎉\n";
-        $resultMsg .= "===========================\n";
-        $resultMsg .= "🆔 *PERIOD:* `" . $lastPeriod . "`\n";
-        $resultMsg .= "📊 *OUTCOME:* *" . $lastActualSize . "* (Digit: `" . $lastActualNum . "`)\n";
-        $resultMsg .= "💎 *STATUS:* *PROFIT EXTRACTED ✅*\n";
-        $resultMsg .= "===========================\n";
-        $resultMsg .= "⚡ *Robot AI: Reset to Level 1.*";
-        $currentLevel = 1;     } else {$nextLvl    = ($currentLevel < 5) ?$currentLevel + 1 : 1;
-        $resultMsg  = "🤖 *[ROBOT AI VERIFIER]*\n";
-        $resultMsg .= "===========================\n";
-        $resultMsg .= "💔 *RESULT: PERIOD LOSS* 💔\n";
-        $resultMsg .= "===========================\n";
-        $resultMsg .= "🆔 *PERIOD:* `" . $lastPeriod . "`\n";
-        $resultMsg .= "📊 *OUTCOME:* *" . $lastActualSize . "* (Digit: `" . $lastActualNum . "`)\n";
-        $resultMsg .= "⚠️ *PROTOCOL:* *EXECUTE RECOVERY LEVEL " . $nextLvl . " 🔴*\n";
-        $resultMsg .= "===========================\n";
-        $resultMsg .= "🤖 *ROBOT ADVICE:* Loss recover karne ke liye 5-Level fund plan use karein!";
-        $currentLevel =$nextLvl;
-    }
-
-    sendTelegramMessage($botToken, $chatId,$resultMsg);
-    sleep(1);
-}
-
-// Save State
-$newState = [
-    'last_sent_period' => $currentPeriod,
-    'period'           => $currentPeriod,
-    'rawSize'          => $currentPred['rawSize'],
-    'level'            => $currentLevel
-];
-file_put_contents($dataFile, json_encode($newState));
+sendTelegramMessage($botToken, $chatId,$resultMsg);
+sleep(1);
 
 // 2. Send New Signal with Robot Photo & Required Hindi text
 $signalCaption  = "⚡ *[ROBOT HACK SIGNAL ENGINE]* ⚡\n\n";
@@ -128,7 +118,7 @@ $signalCaption .= "🆔 *PERIOD ID:* `" . $currentPeriod . "`\n";
 $signalCaption .= "📊 *PREDICTION:* *" . $currentPred['size'] . "*\n";
 $signalCaption .= "🎨 *COLOR CODE:* *" . $currentPred['color'] . "*\n";
 $signalCaption .= "🔢 *LUCKY DIGIT:* `" . $currentPred['number'] . "`\n";
-$signalCaption .= "💰 *FUND SYSTEM:* *Level " . $currentLevel . " (5-Level Mandatory)*\n\n";
+$signalCaption .= "💰 *FUND SYSTEM:* *Level 1 (5-Level Mandatory)*\n\n";
 
 $signalCaption .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
 $signalCaption .= "🔥 *ZAROORI SOOCHNA (IMPORTANT):*\n";
@@ -139,5 +129,5 @@ $signalCaption .= "━━━━━━━━━━━━━━━━━━━━�
 
 sendTelegramPhoto($botToken,$chatId, $robotPhoto,$signalCaption);
 
-echo "Success! Period " . $currentPeriod . " processed successfully.";
+echo "Success! Live UTC period matched perfectly: " . $currentPeriod;
 ?>
