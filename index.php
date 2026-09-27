@@ -59,13 +59,16 @@ function generatePrediction($p) {
 
 $currentPred = generatePrediction($currentPeriod);
 
-// Super Clean & Compact VIP Layout
+// Super Clean & Compact VIP Layout with Instructions
 $vipMsg  = "🤖 *[VIP SIGNAL]*\n\n";
 $vipMsg .= "🆔 *Period:* `" . $currentPeriod . "`\n";
 $vipMsg .= "🎯 *Prediction:* *" . $currentPred['size'] . "*\n";
 $vipMsg .= "🎨 *Color:* *" . $currentPred['color'] . "*\n";
 $vipMsg .= "🔢 *Digit:* `" . $currentPred['number'] . "`\n\n";
-$vipMsg .= "👉 [New ID Register Link](" . $regLink . ")";
+
+$vipMsg .= "⚠️ *Maintain 5 Level Fund*\n";
+$vipMsg .= "🔥 *New Account se ID banakar hi game play karein!*\n\n";
+$vipMsg .= "👉 [Click Here To Register New ID](" . $regLink . ")";
 
 sendTelegramPhoto($botToken,$chatId, $robotPhoto,$vipMsg);
 
