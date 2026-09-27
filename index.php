@@ -1,10 +1,9 @@
-
-    <?php
+<?php
 // ==========================================
 // CONFIGURATION SETTINGS
 // ==========================================
-$botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
-$chatId       = "-1005320999744";
+$botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg"; // Is bot (@mysweep_trader_bot) ka Token
+$chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
 
 // API Endpoints to fetch Wingo data (Fallback support)
