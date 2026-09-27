@@ -1,11 +1,11 @@
 <?php
 // ==========================================
-// FULLY AUTOMATED VIP COMPACT BOT
+// PYAARA SA VIP COMPACT SIGNAL BOT
 // ==========================================
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
-$lockFile     = '/tmp/vip_auto_bot_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1485827404703-89b55fcc595e";
+$lockFile     = '/tmp/vip_pyaara_bot_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1485827404703-89b55fcc595e";
 
 date_default_timezone_set('Asia/Kolkata');
 
@@ -27,61 +27,47 @@ function sendTelegramPhoto($botToken,$chatId, $photoUrl,$caption) {
     return $res;
 }
 
-// 1. دقیق UTC منٹ کا حساب Wingo فارمیٹ کے مطابق
+// Exact UTC Minute Calculation for Wingo format
 $utcDate        = gmdate('Ymd');$utcHours       = (int)gmdate('H');
 $utcMinutes     = (int)gmdate('i');$utcTotalMins   = ($utcHours * 60) +$utcMinutes;
 
 $periodSeq      = 10001 +$utcTotalMins;
 $currentPeriod  = $utcDate . "10001" . $periodSeq;
-$lastPeriod     = $utcDate . "10001" . ($periodSeq - 1);
 
-// منٹ کے لحاظ سے لاک تاکہ ڈبل میسج نہ جائے
+// Minute Execution Lock
 $currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
 
 if ($lastRunMinute ===$currentMinute) {
-    echo "Automated VIP Bot already executed for this minute.";
+    echo "Signal already sent for this minute.";
     exit();
 }
 file_put_contents($lockFile,$currentMinute);
 
-// آٹومیٹک پریڈکشن اور ہسٹری جنریٹر
+// Prediction Algorithm
 function generatePrediction($p) {
     $last3   = (int)substr($p, -3);
     $num     = ($last3 * 7 + 3) % 10;
     $size    = ($num >= 5) ? "BIG 📈" : "SMALL 📉";
-    $rawSize = ($num >= 5) ? "BIG" : "SMALL";
     $color   = ($num == 0 || $num == 5) ? "VIOLET 🟣" : (($num % 2 === 0) ? "RED 🔴" : "GREEN 🟢");
     
     return [
         'number'  => $num,
         'size'    => $size,
-        'rawSize' => $rawSize,
         'color'   => $color
     ];
 }
 
-$lastPred    = generatePrediction($lastPeriod);
 $currentPred = generatePrediction($currentPeriod);
-$isWin       = ($lastPred['number'] >= 5);
 
-// وی آئی پی کمپیکٹ اور صاف ستھرا میسج لے آؤٹ
-$vipMsg  = "🤖 *[VIP ROBOT HACK SYSTEM]* 🤖\n\n";
-$vipMsg .= "📊 *PREVIOUS HISTORY CHECK:* \n";
-$vipMsg .= "• Period: `" . $lastPeriod . "`\n";
-$vipMsg .= "• Result: *" . $lastPred['rawSize'] . "* (" . ($isWin ? "WIN ✅" : "LOSS ❌") . ")\n\n";
-
-$vipMsg .= "━━━━━━━━━━━━━━━━━━━━━━\n";
-$vipMsg .= "🚀 *NEXT LIVE SIGNAL* 🚀\n";
+// Super Clean & Compact VIP Layout
+$vipMsg  = "🤖 *[VIP SIGNAL]*\n\n";
 $vipMsg .= "🆔 *Period:* `" . $currentPeriod . "`\n";
 $vipMsg .= "🎯 *Prediction:* *" . $currentPred['size'] . "*\n";
 $vipMsg .= "🎨 *Color:* *" . $currentPred['color'] . "*\n";
-$vipMsg .= "🔢 *Lucky Digit:* `" . $currentPred['number'] . "`\n";
-$vipMsg .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
-
-$vipMsg .= "🔥 **Zaroori Soochna:** Daily ka 5-10 hazaar kamane ke liye naya ID banalo taaki error na aaye!\n";
-$vipMsg .= "👉 [Click Here To Register New ID](" . $regLink . ")";
+$vipMsg .= "🔢 *Digit:* `" . $currentPred['number'] . "`\n\n";
+$vipMsg .= "👉 [New ID Register Link](" . $regLink . ")";
 
 sendTelegramPhoto($botToken,$chatId, $robotPhoto,$vipMsg);
 
-echo "Fully Automated VIP Signal sent successfully for period: " . $currentPeriod;
+echo "Pyaara VIP Signal sent successfully for period: " . $currentPeriod;
 ?>
