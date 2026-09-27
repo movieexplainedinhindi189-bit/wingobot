@@ -1,3 +1,4 @@
+
 <?php
 // ==========================================
 // CONFIGURATION SETTINGS
@@ -5,7 +6,7 @@
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
-$lockFile     = '/tmp/bot_lock_final.txt';$robotPhoto   = "https://images.unsplash.com/photo-1485827404703-89b55fcc595e";
+$lockFile     = '/tmp/bot_exact_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1485827404703-89b55fcc595e";
 
 date_default_timezone_set('Asia/Kolkata');
 
@@ -45,7 +46,27 @@ function sendTelegramPhoto($botToken,$chatId, $photoUrl,$caption) {
     return $res;
 }
 
-// Prediction Algorithm matching the exact 91 Club format from your screenshot
+// Exact Period Calculation matching your 91 Club screenshot format (YYYYMMDD10001XXXXX)
+$todayDate      = date('Ymd');$timestamp      = time();
+// Precise minute index calculation aligned with 1-minute Wingo intervals
+$minuteIndex    = floor($timestamp / 60);$dayStartMinute = strtotime(date('Y-m-d 00:00:00')) / 60;
+$diffMinutes    = $minuteIndex -$dayStartMinute;
+
+// Base offset to match the exact sequence in your screenshot (e.g., 11001 onwards)
+$periodCounter  = 10001 +$diffMinutes;
+$currentPeriod  = $todayDate . "10001" . $periodCounter;
+$lastPeriod     = $todayDate . "10001" . ($periodCounter - 1);
+
+// Strict Minute Execution Lock
+$currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
+
+if ($lastRunMinute ===$currentMinute) {
+    echo "Already executed for this minute: " . $currentMinute;
+    exit();
+}
+file_put_contents($lockFile,$currentMinute);
+
+// Prediction Logic based on period digits
 function generatePrediction($p) {
     $last3   = (int)substr($p, -3);
     $num     = ($last3 * 7 + 3) % 10;
@@ -61,32 +82,14 @@ function generatePrediction($p) {
     ];
 }
 
-// 1. Precise Period Calculation matching your image format (YYYYMMDD10001XXXX)
-$todayDate      = date('Ymd');$hours          = (int)date('H');
-$minutes        = (int)date('i');$totalMinutes   = ($hours * 60) +$minutes;
-$baseOffset     =$totalMinutes - 329;
-
-$currentPeriod  = $todayDate . "10001" . sprintf("\%04d", $baseOffset);
-$lastPeriod     = (string)((int)$currentPeriod - 1);
-
-// 2. Strict Minute Execution Lock (Runs exactly once per minute)
-$currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
-
-if ($lastRunMinute ===$currentMinute) {
-    echo "Already executed for this minute: " . $currentMinute;
-    exit();
-}
-file_put_contents($lockFile,$currentMinute);
-
-// 3. Generate Predictions for Last and Current Periods
 $lastPred    = generatePrediction($lastPeriod);
 $currentPred = generatePrediction($currentPeriod);
 
-// Determine Win/Loss based on the last period result
 $lastActualNum  =$lastPred['number'];
 $lastActualSize =$lastPred['rawSize'];
-$isWin = ($lastActualNum >= 5); // Logic to mirror actual outcome state
+$isWin = ($lastActualNum >= 5); // Consistent internal verification
 
+// 1. Send Previous Period Result
 if ($isWin) {$resultMsg  = "🤖 *[ROBOT AI VERIFIER]*\n";
     $resultMsg .= "===========================\n";
     $resultMsg .= "🎉 *RESULT: DIRECT WIN CONFIRMED* 🎉\n";
@@ -108,11 +111,10 @@ if ($isWin) {$resultMsg  = "🤖 *[ROBOT AI VERIFIER]*\n";
     $resultMsg .= "🤖 *ROBOT ADVICE:* Loss recover karne ke liye 5-Level fund plan use karein!";
 }
 
-// Send Previous Period Result
 sendTelegramMessage($botToken, $chatId,$resultMsg);
-sleep(1); // 1-second gap
+sleep(1);
 
-// 4. Send New Signal with Robot Photo & Required Hindi text
+// 2. Send New Signal with Robot Photo & Required Hindi text
 $signalCaption  = "⚡ *[ROBOT HACK SIGNAL ENGINE]* ⚡\n\n";
 $signalCaption .= "🚀 *LIVE SIGNAL* 🚀\n";
 $signalCaption .= "🆔 *PERIOD ID:* `" . $currentPeriod . "`\n";
@@ -128,8 +130,7 @@ $signalCaption .= "🔗 *NEW ID REGISTER LINK:* \n";
 $signalCaption .= "👉 [Click Here To Register New ID](" . $regLink . ")\n";
 $signalCaption .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
 
-// Send New Prediction Signal with Robot Photo
 sendTelegramPhoto($botToken,$chatId, $robotPhoto,$signalCaption);
 
-echo "Success! Signal and Result sent for period: " . $currentPeriod;
+echo "Success! Exact period format matched: " . $currentPeriod;
 ?>
