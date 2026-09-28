@@ -1,14 +1,14 @@
 <?php
 // ==========================================
-// 3D VIP SIGNAL BOT (DEBUG & ERROR ON)
+// 3D VIP SIGNAL BOT (FIXED & ERROR FREE)
 // ==========================================
 error_reporting(E_ALL);
-logger_enabled: ini_set('display_errors', 1);
+ini_set('display_errors', 1);
 
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
-$lockFile     = __DIR__ . '/bot_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1639762681485-074b7f938ba0";
+$lockFile     = '/tmp/vip_3d_bot_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1639762681485-074b7f938ba0";
 
 date_default_timezone_set('Asia/Kolkata');
 
@@ -42,11 +42,11 @@ $utcMinutes     = (int)gmdate('i');$utcTotalMins   = ($utcHours * 60) +$utcMinut
 $periodSeq      = 10001 +$utcTotalMins;
 $currentPeriod  = $utcDate . "10001" . $periodSeq;
 
-// 2. Simple Local Execution Lock
+// 2. Simple Execution Lock
 $currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
 
 if ($lastRunMinute ===$currentMinute) {
-    echo "⚠️ Signal already sent for this minute (" . $currentMinute . "). Next signal in next minute.";
+    echo "⚠️ Signal already sent for this minute (" . $currentMinute . ").";
     exit();
 }
 file_put_contents($lockFile,$currentMinute);
@@ -68,7 +68,7 @@ function generate3DBlock($period) {
 
 $pred = generate3DBlock($currentPeriod);
 
-// 4. 3D Box / Short & Sleek VIP Layout
+// 4. 3D Box Layout
 $vipMsg  = "╔══════════════════════╗\n";
 $vipMsg .= "   🔮 *3D VIP HACK MATRIX* 🔮\n";
 $vipMsg .= "╚══════════════════════╝\n\n";
