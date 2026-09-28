@@ -1,13 +1,14 @@
 <?php
 // ==========================================
-// 3D ULTRA-COMPACT VIP SIGNAL BOT
+// 3D VIP SIGNAL BOT (DEBUG & ERROR ON)
 // ==========================================
-error_reporting(0);
+error_reporting(E_ALL);
+logger_enabled: ini_set('display_errors', 1);
 
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
-$lockFile     = sys_get_temp_dir() . '/vip_3d_compact_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1639762681485-074b7f938ba0"; // Premium 3D Vibe
+$lockFile     = __DIR__ . '/bot_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1639762681485-074b7f938ba0";
 
 date_default_timezone_set('Asia/Kolkata');
 
@@ -24,8 +25,12 @@ function sendTelegramPhoto($botToken,$chatId, $photoUrl,$caption) {
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS,$data);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
     $res = curl_exec($ch);
+    
+    if (curl_errno($ch)) {
+        echo "Curl Error: " . curl_error($ch);
+    }
     curl_close($ch);
     return $res;
 }
@@ -37,11 +42,12 @@ $utcMinutes     = (int)gmdate('i');$utcTotalMins   = ($utcHours * 60) +$utcMinut
 $periodSeq      = 10001 +$utcTotalMins;
 $currentPeriod  = $utcDate . "10001" . $periodSeq;
 
-// 2. Minute Execution Lock
+// 2. Simple Local Execution Lock
 $currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
 
 if ($lastRunMinute ===$currentMinute) {
-    exit("Already sent.");
+    echo "⚠️ Signal already sent for this minute (" . $currentMinute . "). Next signal in next minute.";
+    exit();
 }
 file_put_contents($lockFile,$currentMinute);
 
@@ -76,6 +82,11 @@ $vipMsg .= "⚡ *MAINTAIN 5 LVL FUND* ⚡\n";
 $vipMsg .= "⚠️ *WARNING:* *Hack Link se New Account banakar hi play karein, warna Loss hoga!* 🛑\n\n";
 $vipMsg .= "👉 [Register New Hack ID](" . $regLink . ")";
 
-sendTelegramPhoto($botToken,$chatId, $robotPhoto,$vipMsg);
-echo "3D Signal sent successfully.";
+$response = sendTelegramPhoto($botToken,$chatId, $robotPhoto,$vipMsg);
+
+if ($response) {
+    echo "✅ 3D Signal successfully sent to Telegram for period: " . $currentPeriod;
+} else {
+    echo "❌ Failed to send signal.";
+}
 ?>
