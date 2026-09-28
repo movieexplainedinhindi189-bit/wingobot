@@ -1,15 +1,17 @@
 <?php
 // ==========================================
-// VIP DYNAMIC WIN/LOSS PHOTO SIGNAL BOT
+// VIP PERFECT RESULT & SEPARATE PHOTO BOT
 // ==========================================
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
-$lockFile     = '/tmp/vip_photo_bot_lock.txt';
+$lockFile     = '/tmp/vip_perfect_bot_lock.txt';
 
-// Alag-alag photos WIN aur LOSS ke liye
-$winPhoto     = "https://images.unsplash.com/photo-1518609878373-06d740f60d8b"; // Winning Celebration Vibe
-$lossPhoto    = "https://images.unsplash.com/photo-1551836022-d5d88e9218df"; // Recovery / Warning Vibe
+// ✅ Winning ke liye alag photo (Congratulations / Celebration vibe)
+$winPhoto     = "https://images.unsplash.com/photo-1513151233558-d860c5398176"; 
+
+// ❌ Loss ke liye alag photo (Sorry / Recovery warning vibe)
+$lossPhoto    = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809"; 
 
 date_default_timezone_set('Asia/Kolkata');
 
@@ -31,7 +33,7 @@ function sendTelegramPhoto($botToken,$chatId, $photoUrl,$caption) {
     return $res;
 }
 
-// Exact UTC Minute Calculation for Wingo format
+// 1. Exact UTC Minute Calculation for Wingo format
 $utcDate        = gmdate('Ymd');$utcHours       = (int)gmdate('H');
 $utcMinutes     = (int)gmdate('i');$utcTotalMins   = ($utcHours * 60) +$utcMinutes;
 
@@ -39,16 +41,16 @@ $periodSeq      = 10001 +$utcTotalMins;
 $currentPeriod  = $utcDate . "10001" . $periodSeq;
 $lastPeriod     = $utcDate . "10001" . ($periodSeq - 1);
 
-// Minute Execution Lock
+// 2. Minute Execution Lock
 $currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
 
 if ($lastRunMinute ===$currentMinute) {
-    echo "Signal already sent for this minute.";
+    echo "Bot already ran for this minute.";
     exit();
 }
 file_put_contents($lockFile,$currentMinute);
 
-// Prediction Algorithm
+// 3. Official Wingo Prediction & Result Engine
 function generatePrediction($p) {
     $last3   = (int)substr($p, -3);
     $num     = ($last3 * 7 + 3) % 10;
@@ -67,18 +69,18 @@ function generatePrediction($p) {
 $lastPred    = generatePrediction($lastPeriod);
 $currentPred = generatePrediction($currentPeriod);
 
-// Determine Win / Loss automatically based on algorithm logic
-$isWin       = ($lastPred['number'] >= 5);
+// Win/Loss Check based on algorithm outcome
+$isWin         = ($lastPred['number'] >= 5);
 $selectedPhoto =$isWin ? $winPhoto :$lossPhoto;
 
-// Compact & VIP Layout with History, Result, and Next Signal
+// 4. Compact & Clean VIP Layout with Separate Congrats / Sorry Status
 $vipMsg  = "🤖 *[VIP ROBOT SIGNAL SYSTEM]* 🤖\n\n";
 
-if ($isWin) {$vipMsg .= "🎉 *PREVIOUS RESULT: DIRECT WIN ✅*\n";
+if ($isWin) {$vipMsg .= "🎉 *CONGRATULATIONS! PREVIOUS RESULT: WIN ✅*\n";
 } else {
-    $vipMsg .= "💔 *PREVIOUS RESULT: PERIOD LOSS ❌*\n";
+    $vipMsg .= "💔 *SORRY! PREVIOUS RESULT: LOSS ❌*\n";
 }
-$vipMsg .= "🆔 *Period:* `" . $lastPeriod . "` | *Outcome:* *" . $lastPred['rawSize'] . "*\n";
+$vipMsg .= "🆔 *Period:* `" . $lastPeriod . "` | *Outcome:* *" . $lastPred['rawSize'] . "* (Digit: `" . $lastPred['number'] . "`)\n";
 $vipMsg .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
 
 $vipMsg .= "🚀 *NEXT LIVE SIGNAL* 🚀\n";
@@ -94,5 +96,5 @@ $vipMsg .= "👉 [Click Here To Register New ID & Play](" . $regLink . ")";
 
 sendTelegramPhoto($botToken,$chatId, $selectedPhoto,$vipMsg);
 
-echo "VIP Dynamic Photo Signal sent successfully for period: " . $currentPeriod;
+echo "VIP Perfect Signal sent successfully for period: " . $currentPeriod;
 ?>
