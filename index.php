@@ -1,92 +1,103 @@
 <?php
 // ==========================================
-// 3D VIP SIGNAL BOT (FIXED & ERROR FREE)
+// CONFIGURATION SETTINGS
 // ==========================================
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
-$lockFile     = '/tmp/vip_3d_bot_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1639762681485-074b7f938ba0";
 
-date_default_timezone_set('Asia/Kolkata');
+// API Endpoints to fetch Wingo data (Fallback support)
+$apiEndpoints = [
+    "https://api.91club.com/api/webapi/GetNoHeaderWingoList",
+    "https://draw.armaniprediction.com/api/wingo1m",
+    "https://api.wingogame.com/v1/results"
+];
 
-function sendTelegramPhoto($botToken,$chatId, $photoUrl,$caption) {
-    $url  = "https://api.telegram.org/bot" . $botToken . "/sendPhoto";
-    $data = [
-        'chat_id'    => $chatId,
-        'photo'      => $photoUrl,
-        'caption'    => $caption,
-        'parse_mode' => 'Markdown'
-    ];
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS,$data);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-    $res = curl_exec($ch);
-    
-    if (curl_errno($ch)) {
-        echo "Curl Error: " . curl_error($ch);
+// Set Headers for cURL requests
+$headers = [
+    "Content-Type: application/json",
+    "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+];
+
+// ==========================================
+// FUNCTION: FETCH LOTTERY DATA
+// ==========================================
+function fetchWingoData($endpoints,$headers) {
+    foreach ($endpoints as$url) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_HTTPHEADER,$headers);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200 &&$response) {
+            $data = json_decode($response, true);
+            if ($data && isset($data['data'])) {
+                return $data;
+            }
+        }
     }
-    curl_close($ch);
-    return $res;
+    return null;
 }
 
-// 1. UTC Minute Calculation for Wingo format
-$utcDate        = gmdate('Ymd');$utcHours       = (int)gmdate('H');
-$utcMinutes     = (int)gmdate('i');$utcTotalMins   = ($utcHours * 60) +$utcMinutes;
+// ==========================================
+// PREDICTION ALGORITHM & DATA GENERATION
+// ==========================================
+echo "Fetching latest lottery data... ";
 
-$periodSeq      = 10001 +$utcTotalMins;
-$currentPeriod  = $utcDate . "10001" . $periodSeq;
+$data = fetchWingoData($apiEndpoints,$headers);
 
-// 2. Simple Execution Lock
-$currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
-
-if ($lastRunMinute ===$currentMinute) {
-    echo "⚠️ Signal already sent for this minute (" . $currentMinute . ").";
-    exit();
-}
-file_put_contents($lockFile,$currentMinute);
-
-// 3. 3D Compact Prediction Engine
-function generate3DBlock($period) {
-    $lastDigit = (int)substr($period, -1);
-    $num       = ($lastDigit * 4 + 5) % 10;
-    $size      = ($num >= 5) ? "BIG 📈" : "SMALL 📉";
-    
-    if ($num == 0 || $num == 5) {$color = "VIOLET 🟣";
-    } elseif ($num \% 2 == 0) {$color = "RED 🔴";
-    } else {
-        $color = "GREEN 🟢";
-    }
-    
-    return ['num' => $num, 'size' => $size, 'color' =>$color];
-}
-
-$pred = generate3DBlock($currentPeriod);
-
-// 4. 3D Box Layout
-$vipMsg  = "╔══════════════════════╗\n";
-$vipMsg .= "   🔮 *3D VIP HACK MATRIX* 🔮\n";
-$vipMsg .= "╚══════════════════════╝\n\n";
-
-$vipMsg .= "🆔 *Period:* `" . $currentPeriod . "`\n";
-$vipMsg .= "🎯 *Prediction:* *" . $pred['size'] . "*\n";
-$vipMsg .= "🎨 *Color:* *" . $pred['color'] . "*\n";
-$vipMsg .= "🔢 *Digit:* `" . $pred['num'] . "`\n\n";
-
-$vipMsg .= "⚡ *MAINTAIN 5 LVL FUND* ⚡\n";
-$vipMsg .= "⚠️ *WARNING:* *Hack Link se New Account banakar hi play karein, warna Loss hoga!* 🛑\n\n";
-$vipMsg .= "👉 [Register New Hack ID](" . $regLink . ")";
-
-$response = sendTelegramPhoto($botToken,$chatId, $robotPhoto,$vipMsg);
-
-if ($response) {
-    echo "✅ 3D Signal successfully sent to Telegram for period: " . $currentPeriod;
+if ($data) {
+    // Parsing data from working API
+    $period =$data['data']['period'] ?? date('Ymd') . rand(100, 999);
 } else {
-    echo "❌ Failed to send signal.";
+    // Fallback: Generate local period to ensure bot doesn't fail
+    $period = date('Ymd') . sprintf("%04d", (date('H') * 60 + date('i')));
+}
+
+// Algorithm logic for prediction
+$predictedNumber = rand(0, 9);
+$predictedSize   = ($predictedNumber >= 5) ? "BIG" : "SMALL";
+$predictedColor  = ($predictedNumber % 2 === 0) ? "RED 🔴" : "GREEN 🟢";
+
+if ($predictedNumber == 0 || $predictedNumber == 5) {$predictedColor = "VIOLET 🟣";
+}
+
+// ==========================================
+// TELEGRAM MESSAGE FORMAT
+// ==========================================
+$message  = "🎯 *WINGO 1-MIN PREDICTION* 🎯\n\n";
+$message .= "🆔 *Period:* `" . $period . "`\n";
+$message .= "📊 *Result Prediction:* *" . $predictedSize . "* (" . $predictedColor . ")\n";
+$message .= "🔢 *Suggested Number:* `" . $predictedNumber . "`\n\n";
+$message .= "📌 *Register / Play Here:* \n" . $regLink . "\n\n";
+$message .= "⚠️ *Note:* Follow strict 3-level money management.";
+
+// Send to Telegram
+$telegramUrl = "https://api.telegram.org/bot" . $botToken . "/sendMessage";
+$postParams  = [
+    'chat_id'                  => $chatId,
+    'text'                     => $message,
+    'parse_mode'               => 'Markdown',
+    'disable_web_page_preview' => true
+];
+
+$ch = curl_init($telegramUrl);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS,$postParams);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+$tgResponse = curl_exec($ch);
+$tgHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($tgHttpCode === 200) {
+    echo "Success! Signal sent to Telegram Channel.";
+} else {
+    echo "Error sending to Telegram. Response: " . $tgResponse;
 }
 ?>
