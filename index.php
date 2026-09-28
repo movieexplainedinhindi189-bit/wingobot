@@ -1,16 +1,14 @@
 <?php
 // ==========================================
-// VIP ACCURATE RESULT & SEPARATE PHOTO BOT
+// VIP STABLE & WORKING SIGNAL BOT
 // ==========================================
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
-$lockFile     = '/tmp/vip_accurate_bot_lock.txt';
+$lockFile     = '/tmp/vip_working_bot_lock.txt';
 
-// ✅ Winning ke liye alag photo (Congratulations / Celebration vibe)
+// ✅ Winning aur Loss ke alag photos
 $winPhoto     = "https://images.unsplash.com/photo-1513151233558-d860c5398176"; 
-
-// ❌ Loss ke liye alag photo (Sorry / Recovery warning vibe)
 $lossPhoto    = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809"; 
 
 date_default_timezone_set('Asia/Kolkata');
@@ -33,15 +31,15 @@ function sendTelegramPhoto($botToken,$chatId, $photoUrl,$caption) {
     return $res;
 }
 
-// 1. Exact UTC Minute Calculation for Wingo format
+// UTC Minute Calculation
 $utcDate        = gmdate('Ymd');$utcHours       = (int)gmdate('H');
 $utcMinutes     = (int)gmdate('i');$utcTotalMins   = ($utcHours * 60) +$utcMinutes;
 
 $periodSeq      = 10001 +$utcTotalMins;
 $currentPeriod  = $utcDate . "10001" . $periodSeq;
-$lastPeriod     =$utcDate . "10001" . ($periodSeq - 1);$prevToLast     = $utcDate . "10001" . ($periodSeq - 2); // Usse bhi ek purana period prediction ke liye
+$lastPeriod     = $utcDate . "10001" . ($periodSeq - 1);
 
-// 2. Minute Execution Lock
+// Minute Execution Lock
 $currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
 
 if ($lastRunMinute ===$currentMinute) {
@@ -50,7 +48,7 @@ if ($lastRunMinute ===$currentMinute) {
 }
 file_put_contents($lockFile,$currentMinute);
 
-// Prediction Engine
+// Safe Prediction Engine
 function generatePrediction($p) {
     $last3   = (int)substr($p, -3);
     $num     = ($last3 * 7 + 3) % 10;
@@ -66,31 +64,21 @@ function generatePrediction($p) {
     ];
 }
 
-// Pichle se pichle period ki prediction jo $lastPeriod par bani hogi
-$predictionForLast = generatePrediction($prevToLast);
-
-// $lastPeriod ka actual result nikalne ka logic
-$last3Real  = (int)substr($lastPeriod, -3);
-$realNum    = ($last3Real * 7 + 3) % 10;
-$realSize   = ($realNum >= 5) ? "BIG" : "SMALL";
-
-// Check karo ki prediction aur actual result match hua ya nahi
-$isWin = ($predictionForLast['rawSize'] ===$realSize);
-
-// Agle live signal ke liye prediction
+$lastPred    = generatePrediction($lastPeriod);
 $currentPred = generatePrediction($currentPeriod);
 
-// Foto select karo Win ya Loss ke hisaab se
+// Smart Win/Loss Logic
+$isWin         = ($lastPred['number'] >= 5);
 $selectedPhoto =$isWin ? $winPhoto :$lossPhoto;
 
-// 4. Compact & Clean VIP Layout
+// VIP Message Layout
 $vipMsg  = "🤖 *[VIP ROBOT SIGNAL SYSTEM]* 🤖\n\n";
 
 if ($isWin) {$vipMsg .= "🎉 *CONGRATULATIONS! PREVIOUS RESULT: WIN ✅*\n";
 } else {
     $vipMsg .= "💔 *SORRY! PREVIOUS RESULT: LOSS ❌*\n";
 }
-$vipMsg .= "🆔 *Period:* `" . $lastPeriod . "` | *Result:* *" . $realSize . "* (Digit: `" . $realNum . "`)\n";
+$vipMsg .= "🆔 *Period:* `" . $lastPeriod . "` | *Result:* *" . $lastPred['rawSize'] . "* (Digit: `" . $lastPred['number'] . "`)\n";
 $vipMsg .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
 
 $vipMsg .= "🚀 *NEXT LIVE SIGNAL* 🚀\n";
@@ -106,5 +94,5 @@ $vipMsg .= "👉 [Click Here To Register New ID & Play](" . $regLink . ")";
 
 sendTelegramPhoto($botToken,$chatId, $selectedPhoto,$vipMsg);
 
-echo "VIP Accurate Signal sent successfully for period: " . $currentPeriod;
+echo "VIP Working Signal sent successfully for period: " . $currentPeriod;
 ?>
