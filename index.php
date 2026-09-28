@@ -1,15 +1,11 @@
 <?php
 // ==========================================
-// VIP STABLE & WORKING SIGNAL BOT
+// ADVANCED 3D ALGORITHM VIP SIGNAL BOT
 // ==========================================
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
 $regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
-$lockFile     = '/tmp/vip_working_bot_lock.txt';
-
-// ✅ Winning aur Loss ke alag photos
-$winPhoto     = "https://images.unsplash.com/photo-1513151233558-d860c5398176"; 
-$lossPhoto    = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809"; 
+$lockFile     = '/tmp/vip_3d_signal_lock.txt';$robotPhoto   = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"; // Futuristic 3D Vibe Photo
 
 date_default_timezone_set('Asia/Kolkata');
 
@@ -31,68 +27,61 @@ function sendTelegramPhoto($botToken,$chatId, $photoUrl,$caption) {
     return $res;
 }
 
-// UTC Minute Calculation
+// Exact UTC Minute Calculation for Wingo format
 $utcDate        = gmdate('Ymd');$utcHours       = (int)gmdate('H');
 $utcMinutes     = (int)gmdate('i');$utcTotalMins   = ($utcHours * 60) +$utcMinutes;
 
 $periodSeq      = 10001 +$utcTotalMins;
 $currentPeriod  = $utcDate . "10001" . $periodSeq;
-$lastPeriod     = $utcDate . "10001" . ($periodSeq - 1);
 
 // Minute Execution Lock
 $currentMinute  = date('Y-m-d H:i');$lastRunMinute  = file_exists($lockFile) ? trim(file_get_contents($lockFile)) : '';
 
 if ($lastRunMinute ===$currentMinute) {
-    echo "Bot already ran for this minute.";
+    echo "3D Signal already sent for this minute.";
     exit();
 }
 file_put_contents($lockFile,$currentMinute);
 
-// Safe Prediction Engine
-function generatePrediction($p) {
-    $last3   = (int)substr($p, -3);
-    $num     = ($last3 * 7 + 3) % 10;
-    $size    = ($num >= 5) ? "BIG 📈" : "SMALL 📉";
-    $rawSize = ($num >= 5) ? "BIG" : "SMALL";
-    $color   = ($num == 0 || $num == 5) ? "VIOLET 🟣" : (($num % 2 === 0) ? "RED 🔴" : "GREEN 🟢");
+// 🔥 NEW 3D / ADVANCED PREDICTION ENGINE
+function generate3DPrediction($period) {
+    $hash = md5($period);
+    $intVal = hexdec(substr($hash, 0, 6));
+    
+    // New randomized distribution logic
+    $num  = ($intVal * 31 + 17) % 10;
+    $size = ($num >= 5) ? "BIG 📈" : "SMALL 📉";
+    
+    // Color mapping based on 3D hash vector
+    if ($num == 0 || $num == 5) {$color = "VIOLET 🟣";
+    } elseif ($num \% 2 == 0) {$color = "RED 🔴";
+    } else {
+        $color = "GREEN 🟢";
+    }
     
     return [
-        'number'  => $num,
-        'size'    => $size,
-        'rawSize' => $rawSize,
-        'color'   => $color
+        'number' => $num,
+        'size'   => $size,
+        'color'  => $color
     ];
 }
 
-$lastPred    = generatePrediction($lastPeriod);
-$currentPred = generatePrediction($currentPeriod);
+$currentPred = generate3DPrediction($currentPeriod);
 
-// Smart Win/Loss Logic
-$isWin         = ($lastPred['number'] >= 5);
-$selectedPhoto =$isWin ? $winPhoto :$lossPhoto;
-
-// VIP Message Layout
-$vipMsg  = "🤖 *[VIP ROBOT SIGNAL SYSTEM]* 🤖\n\n";
-
-if ($isWin) {$vipMsg .= "🎉 *CONGRATULATIONS! PREVIOUS RESULT: WIN ✅*\n";
-} else {
-    $vipMsg .= "💔 *SORRY! PREVIOUS RESULT: LOSS ❌*\n";
-}
-$vipMsg .= "🆔 *Period:* `" . $lastPeriod . "` | *Result:* *" . $lastPred['rawSize'] . "* (Digit: `" . $lastPred['number'] . "`)\n";
-$vipMsg .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
-
-$vipMsg .= "🚀 *NEXT LIVE SIGNAL* 🚀\n";
+// Sleek 3D Styled VIP Layout
+$vipMsg  = "🔮 *[3D VIP HACK MATRIX]* 🔮\n\n";
+$vipMsg .= "⚡ *QUANTUM LIVE SIGNAL* ⚡\n";
 $vipMsg .= "🆔 *Period:* `" . $currentPeriod . "`\n";
 $vipMsg .= "🎯 *Prediction:* *" . $currentPred['size'] . "*\n";
 $vipMsg .= "🎨 *Color:* *" . $currentPred['color'] . "*\n";
-$vipMsg .= "🔢 *Digit:* `" . $currentPred['number'] . "`\n";
+$vipMsg .= "🔢 *Lucky Digit:* `" . $currentPred['number'] . "`\n";
 $vipMsg .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
 
 $vipMsg .= "💰 *MAINTAIN 5 LVL (Guaranteed Winning Daily 5K - 10K)*\n\n";
 $vipMsg .= "⚠️ *WARNING:* *Hack Link se New Account banakar hi game play karein, warna Loss ho jayega!* 🛑\n\n";
 $vipMsg .= "👉 [Click Here To Register New ID & Play](" . $regLink . ")";
 
-sendTelegramPhoto($botToken,$chatId, $selectedPhoto,$vipMsg);
+sendTelegramPhoto($botToken,$chatId, $robotPhoto,$vipMsg);
 
-echo "VIP Working Signal sent successfully for period: " . $currentPeriod;
+echo "3D VIP Signal sent successfully for period: " . $currentPeriod;
 ?>
