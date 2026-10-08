@@ -4,7 +4,7 @@
 // ==========================================
 $botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
 $chatId       = "@numberhackfre";
-$regLink      = "https://www.aalclub.com/#/register?invitationCode=45578190585";
+$regLink      = "https://www.kanpur91.com/#/register?invitationCode=45578190585";
 $dataFile     = "bot_state.json";
 
 // Set Timezone to IST
