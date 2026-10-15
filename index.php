@@ -151,7 +151,7 @@ $message .= "🔗 *OFFICIAL PLAY LINK:* \n";
 $message .= "👉 [Click Here To Register & Play](" . $regLink . ")\n\n";
 
 $message .= "⚡ *RULE:* Always follow 5-Level Fund Management strategy!";
-$massage .= "⚡ *WARNING AGAR BOT LINK SE NEW ID BNAKE GAME PALY NHI KAROGE TO BOT WORK NHI KREGA OR AAPKA LOSS HO JAYEGA!";
+
 
 // Send to Telegram
 $telegramUrl = "https://api.telegram.org/bot" . $botToken . "/sendMessage";
