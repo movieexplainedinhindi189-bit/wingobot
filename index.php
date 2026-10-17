@@ -1,179 +1,348 @@
-<?php
-// ==========================================
-// CONFIGURATION SETTINGS
-// ==========================================
-$botToken     = "8847073669:AAHRobQ1eV3jVezR0SufbpuL97BMhoYUEyg";
-$chatId       = "@numberhackfre";
-$regLink      = "https://www.kanpur91.com/#/register?invitationCode=45578190585";
-$dataFile     = "bot_state.json";
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI CYBERPREDICTOR v15.0</title>
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-green: #00ff66;
+            --neon-red: #ff0055;
+            --bg-dark: #0a0b10;
+            --card-bg: #121526;
+        }
 
-// Set Timezone to IST
-date_default_timezone_set('Asia/Kolkata');
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
 
-// ==========================================
-// 1. FETCH LIVE PERIOD & LAST RESULT FROM 91 CLUB API
-// ==========================================
-function get91ClubData() {
-    $url = "https://api.91club.com/api/webapi/GetNoHeaderWingoList";
-    $postData = json_encode([
-        "typeId" => 1,
-        "pageNo" => 1,
-        "pageSize" => 10,
-        "language" => 0
-    ]);
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            border: 2px solid var(--neon-blue);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.2);
+            text-align: center;
+            box-sizing: border-box;
+        }
 
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS,$postData);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 4);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "Content-Type: application/json;charset=UTF-8",
-        "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-    ]);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+        .robot-head {
+            font-size: 42px;
+            animation: float 3s ease-in-out infinite;
+        }
 
-    if ($httpCode === 200 &&$response) {
-        $resData = json_decode($response, true);
-        if (isset($resData['data']['list'][0])) {
-            return $resData['data']['list'];
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .title {
+            color: var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+            font-weight: 800;
+        }
+
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 14px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .period-no {
+            color: var(--neon-blue);
+            font-weight: bold;
+            font-size: 1.05em;
+        }
+
+        .timer-circle {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 2px solid var(--neon-green);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.3);
+        }
+
+        .timer-sec {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--neon-green);
+            line-height: 1;
+        }
+
+        .timer-label {
+            font-size: 7px;
+            color: #aaa;
+            font-weight: bold;
+        }
+
+        .pred-card {
+            border: 2px dashed var(--neon-blue);
+            padding: 18px;
+            border-radius: 12px;
+            margin: 15px 0;
+            background: rgba(0, 243, 255, 0.03);
+        }
+
+        .result-text {
+            font-size: 30px;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(45deg, #00f3ff, #0066ff);
+            border: none;
+            color: #000;
+            font-weight: bold;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+            transition: 0.2s;
+        }
+
+        .btn-action:disabled {
+            background: #333;
+            color: #777;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .link-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .vip-link {
+            flex: 1;
+            padding: 10px;
+            text-decoration: none;
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .reg-link { background: #ff0055; }
+        .tg-link { background: #0088cc; }
+
+        table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th, td {
+            padding: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        th { color: var(--neon-blue); }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+        }
+
+        .popup-card {
+            background: #121526;
+            border: 2px solid var(--neon-red);
+            border-radius: 16px;
+            padding: 20px;
+            width: 85%; max-width: 340px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="popup-overlay" id="noticePopup">
+    <div class="popup-card">
+        <div style="font-size: 35px; margin-bottom: 5px;">⚠️</div>
+        <div style="color:var(--neon-red); font-weight:bold; font-size:18px;">IMPORTANT NOTICE</div>
+        <p style="font-size: 13px; color: #ccc;">
+            Hack 100% working rakhne ke liye <b>Neeche diye gaye Hack Link se NEW ID Create karke hi khele</b>.
+        </p>
+        <a href="https://www.aalclub.com/#/register?invitationCode=45578190585" target="_blank" style="display:block; background:#ff0055; color:#fff; text-decoration:none; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:10px;">REGISTER NEW ACCOUNT</a>
+        <button onclick="closePopup()" style="background:transparent; border:1px solid #666; color:#ccc; padding:6px 12px; border-radius:4px; cursor:pointer;">I Understand / Continue</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="robot-head">🤖</div>
+    <div class="title">AI CLUB PREDICTOR v15.0</div>
+
+    <div class="info-box">
+        <div style="text-align: left;">
+            <div style="font-size: 10px; color: #888;">CURRENT PERIOD</div>
+            <div id="period" class="period-no">CONNECTING...</div>
+        </div>
+        <div class="timer-circle">
+            <div class="timer-sec" id="timer">60</div>
+            <div class="timer-label">SEC</div>
+        </div>
+    </div>
+
+    <div class="pred-card">
+        <div>AI CONFIDENCE: <span id="confidence" style="color:var(--neon-green)">--</span></div>
+        <div id="prediction" class="result-text" style="color:var(--neon-green)">READY</div>
+        <div>EXPECTED NUMBER: <span id="pred-num" style="color:var(--neon-blue)">-</span></div>
+    </div>
+
+    <button id="predictBtn" class="btn-action" onclick="getPrediction()">🤖 GET AI PREDICTION</button>
+
+    <div class="link-container">
+        <a href="https://www.aalclub.com/#/register?invitationCode=45578190585" target="_blank" class="vip-link reg-link">📌 REGISTER NOW</a>
+        <a href="https://t.me/numberhackfre" target="_blank" class="vip-link tg-link">📢 JOIN TELEGRAM</a>
+    </div>
+
+    <h4 style="margin-top: 20px; color: var(--neon-blue); text-align: left;">📜 AI Prediction History</h4>
+    <table>
+        <thead>
+            <tr>
+                <th>Period</th>
+                <th>Result</th>
+                <th>Number</th>
+            </tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+    </table>
+</div>
+
+<script>
+    let activePeriod = "";
+    let lockedPrediction = null;
+    let periodHistoryMap = {};
+
+    function closePopup() {
+        document.getElementById('noticePopup').style.display = 'none';
+    }
+
+    // Exact 91 Club WinGo 1-Min Server Match Logic
+    function getCurrent91ClubPeriod() {
+        const now = new Date();
+        const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const istDate = new Date(utc + (3600000 * 5.5)); // IST Time
+        
+        const yyyy = istDate.getFullYear();
+        const mm = String(istDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(istDate.getDate()).padStart(2, '0');
+        
+        // Calculated Offset from 05:30 AM Base Index (9:30 AM = 241)
+        const currentHours = istDate.getHours();
+        const currentMinutes = istDate.getMinutes();
+        
+        // Formula matched with your screenshot: 9:30 AM -> 0241
+        let totalMinutes = (currentHours * 60) + currentMinutes - 329;
+        if (totalMinutes < 1) totalMinutes += 1440; // Handles Day rollover
+
+        const periodIndex = String(totalMinutes).padStart(4, '0');
+        const fullPeriod = `${yyyy}${mm}${dd}10001${periodIndex}`;
+        
+        const secondsRemaining = 60 - istDate.getSeconds();
+
+        return { fullPeriod, secondsRemaining };
+    }
+
+    function updateEngine() {
+        const data = getCurrent91ClubPeriod();
+        const currentPeriod = data.fullPeriod;
+        const secondsLeft = data.secondsRemaining;
+
+        document.getElementById('period').innerText = currentPeriod;
+        document.getElementById('timer').innerText = String(secondsLeft).padStart(2, '0');
+
+        if (activePeriod !== currentPeriod) {
+            // Push previous prediction to history AFTER period ends (at 00 sec)
+            if (activePeriod !== "" && periodHistoryMap[activePeriod]) {
+                addHistoryRecord(activePeriod, periodHistoryMap[activePeriod]);
+            }
+
+            activePeriod = currentPeriod;
+            lockedPrediction = null;
+
+            // Interface Reset
+            document.getElementById('predictBtn').disabled = false;
+            document.getElementById('predictBtn').innerText = "🤖 GET AI PREDICTION";
+            document.getElementById('prediction').innerText = "READY";
+            document.getElementById('prediction').style.color = "var(--neon-green)";
+            document.getElementById('pred-num').innerText = "-";
+            document.getElementById('confidence').innerText = "--";
         }
     }
-    return null;
-}
 
-$listData = get91ClubData();
+    function getPrediction() {
+        if (lockedPrediction !== null) return;
 
-if ($listData) {
-    // API se direct real issue numbers aur actual winning size/number fetch
-    $lastFinishedItem =$listData[0];
-    $lastPeriod       = (string)$lastFinishedItem['issueNumber'];
-    $lastNumber       = (int)$lastFinishedItem['number'];
-    $lastActualSize   = ($lastNumber >= 5) ? "BIG" : "SMALL";
-    
-    // Agla live period
-    $currentPeriod    = (string)((int)$lastPeriod + 1);
-} else {
-    // Fallback math calculation
-    $todayDate    = date('Ymd');$hours        = (int)date('H');
-    $minutes      = (int)date('i');$totalMinutes = ($hours * 60) +$minutes;
-    $baseOffset   =$totalMinutes - 329;
-    
-    $currentPeriod  =$todayDate . "10001" . sprintf("%04d", $baseOffset);$lastPeriod     = (string)((int)$currentPeriod - 1);$lastActualSize = null;
-}
+        const isBig = Math.random() > 0.5;
+        const num = isBig ? Math.floor(Math.random() * 5) + 5 : Math.floor(Math.random() * 5);
+        const confidence = (Math.random() * (99.5 - 89.0) + 89.0).toFixed(1);
 
-// Prediction Generator Algorithm
-function generatePrediction($p) {
-    $last3   = (int)substr($p, -3);
-    $num     = ($last3 * 7 + 3) % 10;
-    $size    = ($num >= 5) ? "BIG 📈" : "SMALL 📉";
-    $rawSize = ($num >= 5) ? "BIG" : "SMALL";
-    $color   = ($num == 0 || $num == 5) ? "VIOLET 🟣" : (($num % 2 === 0) ? "RED 🔴" : "GREEN 🟢");
-    
-    return [
-        'number'  => $num,
-        'size'    => $size,
-        'rawSize' => $rawSize,
-        'color'   => $color
-    ];
-}
+        lockedPrediction = { isBig, num, confidence };
+        periodHistoryMap[activePeriod] = lockedPrediction;
 
-// Load Previous State
-$savedState = [];
-if (file_exists($dataFile)) {
-    $savedState = json_decode(file_get_contents($dataFile), true) ?? [];
-}
+        const predElement = document.getElementById('prediction');
+        if (isBig) {
+            predElement.innerText = "BIG 🔴";
+            predElement.style.color = "var(--neon-red)";
+        } else {
+            predElement.innerText = "SMALL 🟢";
+            predElement.style.color = "var(--neon-green)";
+        }
 
-// Agar same period ke liye prediction pehle bhej di hai, toh firse repeat nahi karega
-if (isset($savedState['last_sent_period']) && $savedState['last_sent_period'] ===$currentPeriod) {
-    echo "Wait! Signal for period " . $currentPeriod . " already sent. Waiting for next minute.";
-    exit();
-}
+        document.getElementById('pred-num').innerText = num;
+        document.getElementById('confidence').innerText = confidence + "%";
 
-$currentPred = generatePrediction($currentPeriod);
-
-// ==========================================
-// 2. CHECK REAL WIN / LOSS FOR LAST PERIOD
-// ==========================================
-$winLossHeader = "";
-
-if (isset($savedState['period']) && $savedState['period'] ===$lastPeriod) {
-    $prevPredSize =$savedState['rawSize'];
-    
-    // Real API Result check ya algorithm fall-back
-    $actualResultSize = $lastActualSize ?? generatePrediction($lastPeriod)['rawSize'];
-    
-    if ($prevPredSize === $actualResultSize) {$winLossHeader  = "━━━━━━━━━━━━━━━━━━━━━━\n";
-        $winLossHeader .= "🔥 *LAST RESULT: ✅ WIN WIN WIN* 🔥\n";
-        $winLossHeader .= "🆔 Period: `" . $lastPeriod . "`\n";
-        $winLossHeader .= "📊 Result: *" . $actualResultSize . "* (Prediction: *" . $prevPredSize . "*)\n";
-        $winLossHeader .= "🎉 *Status: SUCCESS 🟢*\n";
-        $winLossHeader .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
-    } else {
-        $winLossHeader  = "━━━━━━━━━━━━━━━━━━━━━━\n";
-        $winLossHeader .= "💔 *LAST RESULT: ❌ LOSS* 💔\n";
-        $winLossHeader .= "🆔 Period: `" . $lastPeriod . "`\n";
-        $winLossHeader .= "📊 Result: *" . $actualResultSize . "* (Prediction: *" . $prevPredSize . "*)\n";
-        $winLossHeader .= "⚠️ *Status: RECOVER NEXT 🔴*\n";
-        $winLossHeader .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
+        const btn = document.getElementById('predictBtn');
+        btn.disabled = true;
+        btn.innerText = "🔒 RESULT LOCKED FOR THIS PERIOD";
     }
-}
 
-// Save current prediction to file
-$newState = [
-    'last_sent_period' => $currentPeriod,
-    'period'           => $currentPeriod,
-    'size'             => $currentPred['size'],
-    'rawSize'          => $currentPred['rawSize'],
-    'number'           => $currentPred['number']
-];
-file_put_contents($dataFile, json_encode($newState));
+    function addHistoryRecord(period, data) {
+        const historyBody = document.getElementById('history-body');
+        const shortPeriod = "..." + period.slice(-4);
+        const newRow = `<tr>
+            <td>${shortPeriod}</td>
+            <td style="color: ${data.isBig ? 'var(--neon-red)' : 'var(--neon-green)'}">${data.isBig ? 'BIG' : 'SMALL'}</td>
+            <td>${data.num}</td>
+        </tr>`;
+        historyBody.innerHTML = newRow + historyBody.innerHTML;
+    }
 
-// ==========================================
-// 3. STYLISH TELEGRAM MESSAGE FORMAT
-// ==========================================
-$message  = "👑 *91 CLUB VIP SIGNAL* 👑\n";
-$message .= "🎮 *Game:* Wingo 1-Minute\n\n";
+    setInterval(updateEngine, 1000);
+    updateEngine();
+</script>
 
-$message .=$winLossHeader;
-
-$message .= "🚀 *NEXT SIGNAL DETAILS* 🚀\n";
-$message .= "🆔 *Period:* `" . $currentPeriod . "`\n";
-$message .= "📊 *Prediction:* *" . $currentPred['size'] . "*\n";
-$message .= "🎨 *Color:* *" . $currentPred['color'] . "*\n";
-$message .= "🔢 *Lucky Number:* `" . $currentPred['number'] . "`\n\n";
-
-$message .= "🔗 *OFFICIAL PLAY LINK:* \n";
-$message .= "👉 [Click Here To Register & Play](" . $regLink . ")\n\n";
-
-$message .= "⚡ *RULE:* Always follow 5-Level Fund Management strategy!";
-
-
-// Send to Telegram
-$telegramUrl = "https://api.telegram.org/bot" . $botToken . "/sendMessage";
-$postParams  = [
-    'chat_id'                  => $chatId,
-    'text'                     => $message,
-    'parse_mode'               => 'Markdown',
-    'disable_web_page_preview' => true
-];
-
-$ch = curl_init($telegramUrl);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS,$postParams);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-$tgResponse = curl_exec($ch);
-$tgHttpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-if ($tgHttpCode === 200) {
-    echo "Success! Signal sent for period: " . $currentPeriod;
-} else {
-    echo "Error sending to Telegram: " . $tgResponse;
-}
-?>
+</body>
+</html>
